@@ -1,9 +1,9 @@
 import unittest
 from textnode import TextNode, TextType
-from conversions.split_delimiters import split_node_delimiters
+from conversions.split_delimiters import split_node_delimiters, split_nodes_image, split_nodes_link  # noqa F501
 
 
-class TestDelimiterSplits(unittest.TestCase):
+class TestTextSplits(unittest.TestCase):
     def test_code(self):
         # Standard case
         node = TextNode(
@@ -133,3 +133,82 @@ class TestDelimiterSplits(unittest.TestCase):
         with self.assertRaises(Exception) as cm:
             split_node_delimiters(node, "_", TextType.CODE)
         self.assertEqual(str(cm.exception), "No closing delimiter found.")
+
+    def test_images(self):
+        node = TextNode(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png) and another ![second image](https://i.imgur.com/3elNhQu.png)",  # noqa E501
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        expected_nodes = [
+            TextNode("This is text with an ", TextType.TEXT),
+            TextNode(
+                "image",
+                TextType.IMAGES,
+                "https://i.imgur.com/zjjcJKZ.png"
+            ),
+            TextNode(" and another ", TextType.TEXT),
+            TextNode(
+                "second image",
+                TextType.IMAGES,
+                "https://i.imgur.com/3elNhQu.png"
+            ),
+        ]
+        self.assertListEqual(expected_nodes, new_nodes)
+
+        node = TextNode(
+            "![image](https://i.imgur.com/zjjcJKZ.png) This node started with an image.",  # noqa E501
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        expected_nodes = [
+            TextNode(
+                "image",
+                TextType.IMAGES,
+                "https://i.imgur.com/zjjcJKZ.png"
+            ),
+            TextNode(" This node started with an image.", TextType.TEXT),
+        ]
+        self.assertListEqual(expected_nodes, new_nodes)
+
+        node = TextNode(
+            "![image](https://i.imgur.com/zjjcJKZ.png)![second image](https://i.imgur.com/3elNhQu.png)This node has two images back-to-back.",  # noqa E501
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        expected_nodes = [
+            TextNode(
+                "image",
+                TextType.IMAGES,
+                "https://i.imgur.com/zjjcJKZ.png"
+            ),
+            TextNode(
+                "second image",
+                TextType.IMAGES,
+                "https://i.imgur.com/3elNhQu.png"
+            ),
+            TextNode("This node has two images back-to-back.", TextType.TEXT),
+        ]
+        self.assertListEqual(expected_nodes, new_nodes)
+
+    def test_links(self):
+        node = TextNode(
+            "This is text with a [link](https://i.imgur.com/zjjcJKZ.png) and another [second link](https://i.imgur.com/3elNhQu.png)",  # noqa E501
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_link([node])
+        expected_nodes = [
+            TextNode("This is text with a ", TextType.TEXT),
+            TextNode(
+                "link",
+                TextType.LINKS,
+                "https://i.imgur.com/zjjcJKZ.png"
+            ),
+            TextNode(" and another ", TextType.TEXT),
+            TextNode(
+                "second link",
+                TextType.LINKS,
+                "https://i.imgur.com/3elNhQu.png"
+            ),
+        ]
+        self.assertListEqual(expected_nodes, new_nodes)

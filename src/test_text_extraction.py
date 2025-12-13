@@ -1,5 +1,5 @@
 import unittest
-from conversions.extract_text import extract_markdown_images
+from conversions.extract_text import extract_markdown_images, extract_markdown_links  # noqa E501
 
 
 class TestDelimiterSplits(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestDelimiterSplits(unittest.TestCase):
     def test_link(self):
         # Link case
         text = "This is text with a link [image](https://i.imgur.com/zjjcJKZ.png)"  # noqa E501
-        matches = extract_markdown_images(text)
+        matches = extract_markdown_links(text)
         expected_matches = [
             ("image", "https://i.imgur.com/zjjcJKZ.png")
         ]
@@ -41,7 +41,9 @@ class TestDelimiterSplits(unittest.TestCase):
     def test_combined(self):
         # Double image and a link case
         text = "This is text with two images ![image](https://i.imgur.com/zjjcJKZ.png) ![image2](https://boot.dev/image) and a link [link](https://aol.com)"  # noqa E501
-        matches = extract_markdown_images(text)
+        matches = []
+        matches.extend(extract_markdown_images(text))
+        matches.extend(extract_markdown_links(text))
         expected_matches = [
             ("image", "https://i.imgur.com/zjjcJKZ.png"),
             ("image2", "https://boot.dev/image"),
