@@ -29,35 +29,33 @@ def split_nodes_image(old_nodes):
     new_nodes = []
     node_texts = []
     for node in old_nodes:
-        if node.text_type != TextType.TEXT:
+
+        node_texts = extract_markdown_images(node.text)
+        if len(node_texts) == 0:
             new_nodes.append(node)
             continue
 
-        node_texts.extend(extract_markdown_images(node.text))
-        if len(node_texts) == 0:
-            raise Exception("Error with image node infomation")
-
-    re_pattern = r"!\[([^\[\]]*)\]\(([^\(\)]*)\)"
-    segments = re.split(re_pattern, node.text)
-    i = 0
-    j = 0
-    while i < len(segments):
-        if segments[i] == "":
+        re_pattern = r"!\[([^\[\]]*)\]\(([^\(\)]*)\)"
+        segments = re.split(re_pattern, node.text)
+        i = 0
+        j = 0
+        while i < len(segments):
+            if segments[i] == "":
+                i += 1
+                continue
+            if segments[i] == node_texts[j][0]:
+                new_nodes.extend([TextNode(
+                        node_texts[j][0],
+                        TextType.IMAGES,
+                        node_texts[j][1])
+                    ]
+                )
+                i += 1
+                if j < len(node_texts)-1:
+                    j += 1
+            else:
+                new_nodes.extend([TextNode(segments[i], TextType.TEXT)])
             i += 1
-            continue
-        if segments[i] == node_texts[j][0]:
-            new_nodes.extend([TextNode(
-                    node_texts[j][0],
-                    TextType.IMAGES,
-                    node_texts[j][1])
-                ]
-            )
-            i += 1
-            if j < len(node_texts)-1:
-                j += 1
-        else:
-            new_nodes.extend([TextNode(segments[i], TextType.TEXT)])
-        i += 1
     return new_nodes
 
 
@@ -65,34 +63,40 @@ def split_nodes_link(old_nodes):
     new_nodes = []
     node_texts = []
     for node in old_nodes:
-        if node.text_type != TextType.TEXT:
+
+        node_texts = extract_markdown_links(node.text)
+        if len(node_texts) == 0:
             new_nodes.append(node)
             continue
 
-        node_texts = extract_markdown_links(node.text)
-
-        if len(node_texts) == 0:
-            raise Exception("Error with image node infomation")
-
-    re_pattern = r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)"
-    segments = re.split(re_pattern, node.text)
-    i = 0
-    j = 0
-    while i < len(segments):
-        if segments[i] == "":
+        re_pattern = r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)"
+        segments = re.split(re_pattern, node.text)
+        i = 0
+        j = 0
+        while i < len(segments):
+            if segments[i] == "":
+                i += 1
+                continue
+            if segments[i] == node_texts[j][0]:
+                new_nodes.extend([TextNode(
+                        node_texts[j][0],
+                        TextType.LINKS,
+                        node_texts[j][1])
+                    ]
+                )
+                i += 1
+                if j < len(node_texts)-1:
+                    j += 1
+            else:
+                new_nodes.extend([TextNode(segments[i], TextType.TEXT)])
             i += 1
-            continue
-        if segments[i] == node_texts[j][0]:
-            new_nodes.extend([TextNode(
-                    node_texts[j][0],
-                    TextType.LINKS,
-                    node_texts[j][1])
-                ]
-            )
-            i += 1
-            if j < len(node_texts)-1:
-                j += 1
-        else:
-            new_nodes.extend([TextNode(segments[i], TextType.TEXT)])
-        i += 1
     return new_nodes
+
+
+def text_to_textnodes(text):
+    bold_nodes = split_node_delimiters([text], "**", TextType.BOLD)
+    italics_nodes = split_node_delimiters(bold_nodes, "_", TextType.ITALICS)
+    code_nodes = split_node_delimiters(italics_nodes, "`", TextType.CODE)
+    image_nodes = split_nodes_image(code_nodes)
+    link_nodes = split_nodes_link(image_nodes)
+    return link_nodes
