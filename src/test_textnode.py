@@ -1,7 +1,7 @@
 import unittest
 import pdb  # noqa F501
 from textnode import TextNode, TextType
-from conversions.split_delimiters import text_to_textnodes
+from conversions.split_delimiters import text_to_textnodes, markdown_to_blocks
 
 
 class TestTextNode(unittest.TestCase):
@@ -69,3 +69,63 @@ class TestText_to_Node(unittest.TestCase):
             ),
         ]
         self.assertEqual(new_nodes, expected_nodes)
+
+        text = "This is text with an _italic_ word and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"  # noqa E501
+        node = TextNode(text, TextType.TEXT)
+        new_nodes = text_to_textnodes(node)
+        expected_nodes = [
+            TextNode("This is text with an ", TextType.TEXT),
+            TextNode("italic", TextType.ITALICS),
+            TextNode(" word and an ", TextType.TEXT),
+            TextNode(
+                "obi wan image",
+                TextType.IMAGES,
+                "https://i.imgur.com/fJRm4Vk.jpeg"
+            ),
+            TextNode(" and a ", TextType.TEXT),
+            TextNode(
+                "link",
+                TextType.LINKS,
+                "https://boot.dev"
+            ),
+        ]
+        self.assertEqual(new_nodes, expected_nodes)
+
+
+class TestMarkdownBlock(unittest.TestCase):
+    def test_markdown_to_blocks(self):
+        md = """This is **bolded** paragraph
+
+        This is another paragraph with _italic_ text and `code` here
+        This is the same paragraph on a new line
+
+        - This is a list
+        - with items"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",  # noqa E501
+                "- This is a list\n- with items",
+            ],
+        )
+
+        md = """This is **bolded** paragraph
+
+
+
+        This is another paragraph with _italic_ text and `code` here
+        This is the same paragraph on a new line
+
+        - This is a list
+        - with items"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",  # noqa E501
+                "- This is a list\n- with items",
+            ],
+        )
